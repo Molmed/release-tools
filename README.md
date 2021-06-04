@@ -6,15 +6,25 @@ Tools for handling versioned releases. Currently only handle releases using a pa
 
 # Simple workflow
 
-## Standard initalization
+## Usage in a project
 
 NOTE: Make sure that you have a Python virtualenv activated.
 
-Add this tool as a submodule:
+In a project, add this tool as a submodule:
 
     git submodule add https://github.com/molmed/release-tools .release/tools
     pip install -e .release/tools
-    (cd .release/tools && git checkout develop)  # Temporary
+
+## Usage on a build or deployment server (e.g. gitlab runner)
+
+Pip install it into virtualenv. For convenience also create a globally available tool for
+using the command, e.g.:
+
+```
+source activate release-tools
+release-tools $@
+```
+
 
 # Legacy Workflows
 
