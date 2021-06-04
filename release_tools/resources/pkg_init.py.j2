@@ -1,0 +1,9 @@
+import os
+
+def _read_version():
+    path = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(path, 'VERSION')) as version_file:
+        version = version_file.read().strip()
+        return version
+
+__version__ = _read_version()

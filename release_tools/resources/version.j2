@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# By default this script dumps out the contents of the file VERSION. That file must only
+# include the text: <prefix>ma.mi.pa
+
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd $SCRIPT_DIR/../..
+
+cat VERSION

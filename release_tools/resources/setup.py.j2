@@ -1,0 +1,18 @@
+import os
+from setuptools import setup, find_packages
+
+with open(os.path.join('PACKAGE_NAME', 'VERSION')) as version_file:
+    version = version_file.read().strip()
+
+setup(
+    name='distro',
+    version=version,
+    description="DESCRIPTION",
+    author='See: github.com/.../CONTRIBUTORS',
+    packages=find_packages(exclude=["tests*"]),
+    entry_points={
+        'console_scripts': [
+            'snpseq-data = snpseq_data.cli:start'
+        ]
+    }
+)

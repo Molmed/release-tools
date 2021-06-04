@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# Ensure that we can push (tags)
+push_remote=$(git remote -v | \
+              grep "^origin.* (fetch)" | \
+              awk '{ print $2 }' | \
+              perl -pe's/.*@gitlab.snpseq.medsci.uu.se\//git\@gitlab.snpseq.medsci.uu.se:/g')
+
+echo "Setting push remote to '$push_remote'..."
+git remote set-url origin --push $push_remote
+

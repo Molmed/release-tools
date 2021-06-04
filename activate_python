@@ -1,0 +1,13 @@
+# This script should be sourced
+#
+# Activates the default python environment for the build pipeline
+
+PYVERSION=$1
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+conda create -y --prefix ./_virtualenv python=$PYVERSION || true
+source activate ./_virtualenv
+python --version
+
+echo "Installing release-tools..."
+pip install -e $SCRIPT_DIR

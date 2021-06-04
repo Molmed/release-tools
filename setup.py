@@ -9,11 +9,15 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='release-tools',
-    version='0.3.0',
+    version='1.0.0',
     description='Python tools for release management',
     long_description=long_description,
     url='https://github.com/withrocks/release-tools',
     author='withrocks',
+
+    package_data={'': ['*.j2']},
+    include_package_data=True,
+
 
     license='MIT',
     classifiers=[
@@ -32,7 +36,7 @@ setup(
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
     packages=find_packages(exclude=['contrib', 'docs', 'tests']),
-    install_requires=['requests[security]', 'click', 'pyyaml', 'python-dateutil'],
+    install_requires=['requests[security]', 'click', 'pyyaml', 'python-dateutil', 'jinja2'],
 
     # $ pip install -e .[dev,test]
     extras_require={

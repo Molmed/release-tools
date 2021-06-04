@@ -1,0 +1,142 @@
+variables:
+  GIT_STRATEGY: fetch
+  GIT_SUBMODULE_STRATEGY: recursive
+
+stages:
+  - tag                   # Apply git tags based on the branch
+
+  - build                 # Build the product
+
+  - test                  # Test the product
+
+  - package               # Create a built package (depends on the build step)
+
+  - deploy-to-dev         # Deploy to dev
+
+  - create-candidate      # Create a candidate in the next branch
+
+  - deploy-to-staging     # Deploy the next branch to staging
+
+  - accept                # Accept a release candidate from some tag. This automatically deploys to prod
+
+  - deploy-to-prod        # Deploy to production
+
+default:
+  before_script:
+      - .release/tools/before_any
+      # Change the version number if required
+      - source .release/tools/activate_python 3.8
+
+tag branch:
+  stage: tag
+  script:
+      - release-tools tag $CI_COMMIT_BRANCH
+      - ssh-agent bash -c "ssh-add ~/.ssh/gitlab-runner; git push --tags"
+  only:
+{%- for branch in special_branches %}
+      - {{ branch -}}
+{% endfor %}
+
+build:
+  stage: build
+  script:
+    - release-tools tag-package
+    - .release/custom/build
+  except:
+{%- for branch in special_branches %}
+      - {{ branch -}}
+{% endfor %}
+
+run_unit_tests:
+  stage: test
+  script:
+    - .release/custom/test
+  except:
+{%- for branch in special_branches %}
+      - {{ branch -}}
+{% endfor %}
+
+# Gathers everything in ./bin together in one artifact
+package:
+  stage: build
+  artifacts:
+    paths:
+      - .
+  only:
+    - tags
+
+# deploy-to-dev:
+#   stage: deploy-to-dev
+#   script:
+#       - create-package-from-bin $CI_PROJECT_NAME $CI_COMMIT_SHA
+#       # Example: sudo /opt/sysman/cmd/deploy/dev/products/clarity-snpseq $CI_COMMIT_SHA "clarity3_8" "3.8"
+#   environment:
+#       name: develop
+#       url: https://landing-page
+#   tags:
+#       - deploys
+#   only:
+#       - develop2
+
+# create-candidate:
+#   stage: create-candidate
+#   script:
+#     - echo "Pushing to the next branch on gitlab"
+#     - git checkout -B next
+#     - git remote set-url --push origin git@gitlab.snpseq.medsci.uu.se:lims/clarity-snpseq.git
+#     - ssh-agent bash -c "ssh-add ~/.ssh/gitlab-runner; git push origin next"
+#   when: manual
+#   only:
+#     - develop2
+
+# deploy-to-staging:
+#   stage: deploy-to-staging
+#   script:
+#     - create-package-from-bin $CI_PROJECT_NAME $CI_COMMIT_SHA
+#     - sudo /opt/sysman/cmd/deploy/staging/products/clarity-snpseq $CI_COMMIT_SHA "clarity3_8" "3.8"
+#   environment:
+#     name: staging
+#     url: https://lims-staging.snpseq.medsci.uu.se
+#   tags:
+#     - deploys
+#   only:
+#     - next2
+
+# accept:
+#   when: manual
+#   stage: accept
+#   script:
+#     - echo "Removing the RC tag from the current version"
+#     - change-version accept "#dev"
+#     - echo "Pushing to the master branch on gitlab"
+#     - git checkout -B master
+#     - git remote set-url origin --push git@gitlab.snpseq.medsci.uu.se:lims/clarity-snpseq.git
+#     - ssh-agent bash -c "ssh-add ~/.ssh/gitlab-runner; git push origin master"
+#   only:
+#     - tags
+
+# sync-branches:
+#   when: manual
+#   stage: accept
+#   script:
+#     - echo "Pushing to the develop branch on gitlab"
+#     - git checkout develop
+#     - git pull
+#     - git merge master
+#     - git remote set-url origin --push git@gitlab.snpseq.medsci.uu.se:lims/clarity-snpseq.git
+#     - ssh-agent bash -c "ssh-add ~/.ssh/gitlab-runner; git push origin develop"
+#   only:
+#     - master2
+
+# deploy-to-prod:
+#   stage: deploy-to-prod
+#   script:
+#       - create-package-from-bin $CI_PROJECT_NAME $CI_COMMIT_SHA
+#       - sudo /opt/sysman/cmd/deploy/prod/products/clarity-snpseq $CI_COMMIT_SHA "clarity3_8" "3.8"
+#   environment:
+#     name: prod
+#     url: https://lims.snpseq.medsci.uu.se
+#   tags:
+#     - deploys
+#   only:
+#     - master2
