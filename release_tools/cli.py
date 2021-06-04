@@ -1,6 +1,6 @@
 import click
 import yaml
-from github import GithubProvider
+from release_tools.github import GithubProvider
 from release_tools.workflow import Workflow, Conventions, DEVELOP_BRANCH
 
 
@@ -24,7 +24,7 @@ def cli(ctx, whatif, config):
         ctx.obj["config"] = None
 
     if whatif:
-        print "*** Running with whatif ON - no writes ***"
+        click.echo("*** Running with whatif ON - no writes ***")
 
 
 @cli.command('create-cand')
@@ -33,7 +33,7 @@ def cli(ctx, whatif, config):
 @click.option('--major', is_flag=True)
 @click.pass_context
 def create_cand(ctx, owner, repo, major):
-    print "Creating a release candidate from {}".format(DEVELOP_BRANCH)
+    click.echo("Creating a release candidate from {}".format(DEVELOP_BRANCH))
     workflow = create_workflow(owner, repo, ctx.obj['whatif'], ctx.obj['config'])
     workflow.create_release_candidate(major_inc=major)
 
@@ -43,7 +43,7 @@ def create_cand(ctx, owner, repo, major):
 @click.argument('repo')
 @click.pass_context
 def create_hotfix(ctx, owner, repo):
-    print "Creating a hotfix branch"
+    click.echo("Creating a hotfix branch")
     workflow = create_workflow(owner, repo, ctx.obj['whatif'], ctx.obj['config'])
     workflow.create_hotfix()
 
@@ -54,7 +54,7 @@ def create_hotfix(ctx, owner, repo):
 @click.option('--force/--not-force', default=False)
 @click.pass_context
 def accept(ctx, owner, repo, force):
-    print "Accepting the current release candidate"
+    click.echo("Accepting the current release candidate")
     workflow = create_workflow(owner, repo, ctx.obj['whatif'], ctx.obj['config'])
     workflow.accept_release_candidate(force)
 
@@ -66,7 +66,7 @@ def accept(ctx, owner, repo, force):
 @click.option('--force/--not-force', default=False)
 @click.pass_context
 def download(ctx, owner, repo, path, force):
-    print "Downloading the next release in the queue"
+    click.echo("Downloading the next release in the queue")
     workflow = create_workflow(owner, repo, ctx.obj['whatif'], ctx.obj['config'])
     workflow.download_next_in_queue(path, force)
 
@@ -77,7 +77,7 @@ def download(ctx, owner, repo, path, force):
 @click.argument('directory')
 @click.pass_context
 def download_release_history(ctx, owner, repo, directory):
-    print "Downloading release history"
+    click.echo("Downloading release history")
     workflow = create_workflow(owner, repo, ctx.obj['whatif'], ctx.obj['config'])
     workflow.download_release_history(directory)
 
@@ -89,7 +89,7 @@ def download_release_history(ctx, owner, repo, directory):
 def latest(ctx, owner, repo):
     workflow = create_workflow(owner, repo, ctx.obj['whatif'], ctx.obj['config'])
     latest_version = workflow.get_latest_version()
-    print "Latest version: {0}".format(latest_version)
+    click.echo("Latest version: {0}".format(latest_version))
 
 
 @cli.command()

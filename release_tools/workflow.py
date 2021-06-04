@@ -57,13 +57,13 @@ class Workflow:
         """
         candidate_branch = self.get_candidate_branch(major_inc=major_inc)
 
-        print "Creating a new branch, '{}' from master".format(candidate_branch)
+        print("Creating a new branch, '{}' from master".format(candidate_branch))
         if not self.whatif:
             self.provider.create_branch_from_master(candidate_branch)
 
         # Merge from 'develop' into the new release branch:
         msg = "Merging from {} to {}".format(DEVELOP_BRANCH, candidate_branch)
-        print msg
+        print(msg)
         if not self.whatif:
             self.provider.merge(candidate_branch, DEVELOP_BRANCH, msg)
 
@@ -75,28 +75,28 @@ class Workflow:
         has been increased instead and they are before the release in the deployment pipeline.
         """
         hotfix_branch = self.get_hotfix_branch()
-        print "Creating a new hotfix branch, '{}' from master".format(hotfix_branch)
+        print("Creating a new hotfix branch, '{}' from master".format(hotfix_branch))
         if not self.whatif:
             self.provider.create_branch_from_master(hotfix_branch)
 
-        print "Not merging automatically into a hotfix - hotfix patches should be sent as pull requests to it"
+        print("Not merging automatically into a hotfix - hotfix patches should be sent as pull requests to it")
 
     def download_next_in_queue(self, path, force):
         queue = self.get_queue()
         if len(queue) > 1:
-            print "There are more than one items in the queue. Downloading the first item."
+            print("There are more than one items in the queue. Downloading the first item.")
 
         branch = queue[0]
         full_path = os.path.join(path, branch)
         if not force and os.path.exists(full_path):
-            print "There already exists a directory for the build at '{}'. Please specify a non-existing path or --force.".format(full_path)
+            print("There already exists a directory for the build at '{}'. Please specify a non-existing path or --force.".format(full_path))
             sys.exit(1)
-        print "Downloading and extracting '{}' to '{}'. This may take a few seconds...".format(branch, full_path)
+        print("Downloading and extracting '{}' to '{}'. This may take a few seconds...".format(branch, full_path))
         if not self.whatif:
             self.provider.download_archive(branch, full_path)
 
     def download_release_history(self, path):
-        print "Downloading release history to {}".format(path)
+        print("Downloading release history to {}".format(path))
         if not self.whatif:
             self.provider.download_release_history(path)
 
@@ -170,7 +170,7 @@ class Workflow:
         queue = self.get_queue()
 
         if len(queue) == 0:
-            print "The queue is empty. Nothing to accept."
+            print("The queue is empty. Nothing to accept.")
             return
 
         branch = queue[0]
@@ -178,52 +178,52 @@ class Workflow:
         # TODO: Don't accept the release if it has a pull request.
         # That might be a hotfix waiting to be merged.
         if self.provider.has_pull_requests(branch):
-            print "The branch being accepted has pull requests"
-            print "which need to be resolved before accepting."
+            print("The branch being accepted has pull requests")
+            print("which need to be resolved before accepting.")
             sys.exit(1)
 
         next_release = None
 
         if len(queue) > 1:
-            print "There are more than one item in the queue:"
+            print("There are more than one item in the queue:")
             for current in queue:
-                print "  {}".format(current)
+                print("  {}".format(current))
 
             if not force:
-                print "The first branch '{}' will be accepted. Continue?".format(branch)
+                print("The first branch '{}' will be accepted. Continue?".format(branch))
                 accepted = raw_input("y/n> ")
 
                 if accepted != "y":
-                    print "Action cancelled by user"
+                    print("Action cancelled by user")
                     return
             else:
-                print "Force set to true. The first branch will automatically be accepted"
+                print("Force set to true. The first branch will automatically be accepted")
 
             next_release = queue[1]
 
         def merge_cond(base, head):
             msg = "Merging from '{}' to '{}'".format(head, base)
-            print msg
+            print(msg)
             if not self.whatif:
                 try:
                     self.provider.merge(base, head, msg)
                 except MergeException:
-                    print "Merge exception while merging '{}' to '{}'. ".format(head, base) + \
-                          "This can happen if there was a hotfix release in between."
+                    print("Merge exception while merging '{}' to '{}'. ".format(head, base) +
+                          "This can happen if there was a hotfix release in between.")
                     sys.exit(1)
 
         merge_cond(MASTER_BRANCH, branch)
 
         tag_name = self.conventions.get_tag_from_branch(branch)
-        print "Tagging HEAD on {} as release {}".format(MASTER_BRANCH, tag_name)
+        print("Tagging HEAD on {} as release {}".format(MASTER_BRANCH, tag_name))
         if not self.whatif:
             self.provider.tag_release(tag_name, MASTER_BRANCH)
 
         if branch.startswith("hotfix"):
             # We don't know if the dev needs this in 'develop' and in the next release, but it's likely
             # so we send a pull request to those.
-            print "Hotfix branch merged - sending pull requests to develop and release"
-            print "These pull requests need to be reviewed and potential merge conflicts resolved"
+            print("Hotfix branch merged - sending pull requests to develop and release")
+            print("These pull requests need to be reviewed and potential merge conflicts resolved")
 
             msg = "Apply hotfix '{}' to '{}'".format(branch, DEVELOP_BRANCH)
             body = "Pull request was made automatically by release-tools"

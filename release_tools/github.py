@@ -2,7 +2,7 @@
 from __future__ import print_function
 import requests
 import zipfile
-import StringIO
+from io import StringIO
 import dateutil.parser
 import sys
 
