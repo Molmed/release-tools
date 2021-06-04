@@ -2,13 +2,13 @@ import click
 import yaml
 from release_tools.github import GithubProvider
 from release_tools.workflow import Workflow, Conventions, DEVELOP_BRANCH
+from release_tools.app import create_version_service
 
 
 def create_workflow(owner, repo, whatif, config):
     access_token = config["access_token"] if config and "access_token" in config else None
     provider = GithubProvider(owner, repo, access_token)
     return Workflow(provider, Conventions, whatif)
-
 
 @click.group()
 @click.option('--whatif/--not-whatif', default=False)
@@ -107,26 +107,49 @@ def status(ctx, owner, repo):
     latest_version = workflow.get_latest_version()
     next_version = workflow.get_candidate_version()
     hotfix_version = workflow.get_hotfix_version()
-    print "Latest version: {}".format(latest_version)
-    print "  - Next version version would be: {}".format(next_version)
-    print "  - Next hotfix version would be: {}".format(hotfix_version)
+    click.echo("Latest version: {}".format(latest_version))
+    click.echo("  - Next version version would be: {}".format(next_version))
+    click.echo("  - Next hotfix version would be: {}".format(hotfix_version))
 
     # TODO: Report all release tags too
 
-    print ""
-    print "Branches:"
+    click.echo("")
+    click.echo("Branches:")
     for branch in branch_names:
-        print "  {}{}".format(branch, " *" if (branch in queue) else "")
+        click.echo("  {}{}".format(branch, " *" if (branch in queue) else ""))
 
-    print ""
-    print "Queue:"
+    click.echo("")
+    click.echo("Queue:")
     # TODO: Use cache for api calls when possible
     for branch in queue:
         pull_requests = len(workflow.provider.get_pull_requests(branch))
-        print "  {} (PRs={})".format(branch, pull_requests)
+        click.echo("  {} (PRs={})".format(branch, pull_requests))
 
     # TODO: Compare relevant branches
-    print ""
+    click.echo("")
+
+
+@cli.command()
+@click.option("--release/--no-release", default=False)
+def tag(release):
+    """
+    Tag the current branch. Requires there to be a file in `.deploy/version` which needs to
+    be provided by the programmer. This file should echo the current version
+
+    We expect an executable called `version` in the same directory as we are. It must write
+    the current version on the format `<major>.<minor>.<patch>`. It should not include a candidate
+    postfix (e.g. -rc1). It can though for debug reasons include a prefix which must then be
+    on the format `<something>-`.
+
+    Examples of a valid version:
+        1.0.0
+        dbg-1.0.0
+    """
+    click.echo(f"Tagging a special branch. Release={release}...")
+
+    version_service = create_version_service()
+    next_version = version_service.get_next_version()
+    click.echo(next_version)
 
 
 def cli_main():

@@ -4,17 +4,19 @@ release-tools
 Tools for handling versioned releases. Currently only handle releases using a particular workflow
 (see below) and when hosting and tagging versions on Github.
 
-# Install
-``python -m pip install -U git+https://github.com/withrocks/release-tools.git#egg=release-tools``
+# Simple workflow
 
-or, with a version:
+## Standard initalization
 
-``python -m pip install -U git+https://github.com/withrocks/release-tools.git@v0.1.2#egg=release-tools``
+NOTE: Make sure that you have a Python virtualenv activated.
 
-## Windows
-On Windows, ensure that you've got your Python scripts directory in your PATH. That directory is located in ``<python installation dir>\Scripts``. (If you installed this in a virtualenv, you need that scripts directory.)
+Add this tool as a submodule:
 
-# Workflows
+    git submodule add https://github.com/molmed/release-tools .release/tools
+    pip install -e .release/tools
+
+# Legacy Workflows
+
 ## Assumptions
 The release workflow supported assumes that you've got two permanent branches:
   * ``develop``: The next version to be released. Nothing should be committed in here that cannot safely go
@@ -24,20 +26,20 @@ The release workflow supported assumes that you've got two permanent branches:
 The following transient branches also exist:
   * ``release-#.#.#``: Release branches. Can be deleted after releasing.
   * ``hotfix-#.#.#``: Hotfix branches. Can be deleted after releasing and merging to relevant branches.
-  * ``feature-branch-n``: Any number of feature branches. Names can be anything not colliding with 
+  * ``feature-branch-n``: Any number of feature branches. Names can be anything not colliding with
   the other branches.
 
 ## General flow
   * Code has been submitted to the ``develop`` branch, probably through pull requests from feature branches
   * When the next version is ready to be released, run ``release-tools create-cand <owner> <repo> [--major]``
-  * This creates a new release branch called ``release-#.#.#``, where the minor or major version has 
+  * This creates a new release branch called ``release-#.#.#``, where the minor or major version has
     been increased, e.g. 1.0.2 -> 1.1.0.
   * Build and validate (separate workflow). Latest version can be fetched with
   ``release-tools download <owner> <repo> <path>``. Deploy if it passes the QA process.
   * After deploying, call ``release-tools accept <owner> <repo>``. If the queue also contains a hotfix, you
   must release that first.
   * The code has now been merged into master with the applicable tag, e.g. v1.1.0.
-  
+
 ## Hotfix flow
   * The ``develop`` branch is not available (contains features that can't be deployed),
   and you need to create a hotfix.
@@ -51,7 +53,7 @@ The following transient branches also exist:
   This acts as a reminder of that the fix might need to go into these branches, but it may
   make more sense to only merge the hotfix->release pull request and then make a separate
   pull request from release->develop, since then fewer merge conflicts might need to be solved.
-  
+
 ## Release queue
   * Using these workflows, there can only be one hotfix version and one release version
   out at the same time.
