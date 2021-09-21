@@ -2,4 +2,6 @@
 *.egg-info/
 *.pyc
 *.secret
+build/
+dist/
 

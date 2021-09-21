@@ -183,12 +183,12 @@ class ConstantCandidateProvider:
 
     def get_candidate(self):
         """
-        Returns the current branch
+        Returns a constant candidate
         """
         return self.candidate
 
 
-class GitPreviousVersionsProvider:
+class GitVersionHistoryProvider:
     @staticmethod
     def get_versions():
         """

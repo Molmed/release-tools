@@ -1,0 +1,3 @@
+# Python packages that will be released:
+python_packages:
+  - release_tools

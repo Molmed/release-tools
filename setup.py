@@ -1,15 +1,19 @@
 from setuptools import setup, find_packages
 from codecs import open
 from os import path
+import os
 
 here = path.abspath(path.dirname(__file__))
+
+with open(os.path.join(here, 'release_tools', 'VERSION')) as version_file:
+    version = version_file.read().strip()
 
 with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
     name='release-tools',
-    version='1.0.0',
+    version=version,
     description='Python tools for release management',
     long_description=long_description,
     url='https://github.com/withrocks/release-tools',
@@ -17,7 +21,6 @@ setup(
 
     package_data={'': ['*.j2']},
     include_package_data=True,
-
 
     license='MIT',
     classifiers=[

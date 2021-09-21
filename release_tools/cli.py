@@ -6,26 +6,41 @@ from release_tools.workflow import Workflow, Conventions, DEVELOP_BRANCH
 from release_tools.app import create_version_service
 from jinja2 import PackageLoader, Environment
 from release_tools.utils import find_single_package
+import logging
+from subprocess import check_call
+
 
 special_branches = ["develop", "rc", "hotfix", "main"]
 
+DEFAULT_CONFIG = ".release-tools.yml"
 
 def create_workflow(owner, repo, whatif, config):
     access_token = config["access_token"] if config and "access_token" in config else None
     provider = GithubProvider(owner, repo, access_token)
     return Workflow(provider, Conventions, whatif)
 
+def raise_require_config():
+    click.echo("A config file is missing for the project. Call `release-tools init` to "
+               "generate an example")
+    exit(1)
+
 
 @click.group()
 @click.option('--whatif/--not-whatif', default=False)
+@click.option('--log-level', default="WARN")
 @click.option('--config')
 @click.pass_context
-def cli(ctx, whatif, config):
+def cli(ctx, whatif, config, log_level):
+    logging.basicConfig(level=log_level)
     ctx.obj['whatif'] = whatif
+
+    if not config and os.path.exists(DEFAULT_CONFIG):
+        config = DEFAULT_CONFIG
+
     # Read config file containing access token:
     if config:
         with open(config) as f:
-            ctx.obj["config"] = yaml.load(f)
+            ctx.obj["config"] = yaml.safe_load(f)
     else:
         ctx.obj["config"] = None
 
@@ -245,32 +260,86 @@ def tag(tools_path, candidate):
 
 
 @cli.command()
-@click.option("--tools-path", default=".release")
-def tag_package(tools_path):
+@click.pass_context
+@click.option("--install-requirements/--no-install-requirements", default=True)
+def package_python_libraries(ctx, install_requirements):
     """
-    Updates the python version in setup.py to reflect the git tag.
+    Packages all python libraries configured in the config file (python_packages).
+
+    The version number for the libraries will reflect the git tag we are on, and
+    will fail if it doesn't look like a release.
     """
 
-    if not os.path.exists("setup.py"):
-        click.echo(
-            "WARNING: Can't find setup.py and don't know how to tag anything else")
-        return
+    if install_requirements:
+        click.echo("Installing pip requirements")
+        check_call("python -m pip install --upgrade pip setuptools wheel".split())
 
-    custom_tools_path = os.path.join(tools_path, "custom")
-    version_service = create_version_service(custom_tools_path, "")
-    version = version_service.get_current()
 
-    from setuptools import find_packages
-    pkg = [pkg for pkg in find_packages(exclude=["test*"]) if "." not in pkg]
 
-    if len(pkg) != 1:
-        pass
-    pkg = pkg[0]
 
-    click.echo(f"Updating VERSION file to '{version}'...")
+    config = ctx.obj["config"]
+    if config is None:
+        raise_require_config()
 
-    with open(os.path.join(pkg, "VERSION"), "w") as fs:
-        fs.write(str(version))
+    packages = config.get("python_packages", [])
+
+    if len(packages) == 0:
+        click.echo("No packages configured for updating")
+
+    from release_tools.versions import (VersionFileInPythonPackageBaseVersionProvider,
+                                        GitCandidateProvider,
+                                        GitVersionHistoryProvider,
+                                        VersionService)
+
+    candidate_provider = GitCandidateProvider()
+    prev_versions_provider = GitVersionHistoryProvider()
+
+    print(candidate_provider.get_candidate())
+    print(list(prev_versions_provider.get_versions()))
+
+    exit()
+
+    # base_version_provider = VersionFileInPythonPackageBaseVersionProvider()
+
+    # version_service = VersionService(candidate_provider, base_version_provider, prev_versions_provider)
+    return
+
+
+
+    version_service = create_version_service()
+    #version = version_service.get_current()
+
+    for package in packages:
+        click.echo(f"Applying git tag to package {package}...")
+
+
+    # if not os.path.exists("setup.py"):
+    #     click.echo(
+    #         "WARNING: Can't find setup.py and don't know how to tag anything else")
+    #     return
+
+    # custom_tools_path = os.path.join(tools_path, "custom")
+    # version_service = create_version_service(custom_tools_path, "")
+    # version = version_service.get_current()
+
+    # from setuptools import find_packages
+    # pkg = [pkg for pkg in find_packages(exclude=["test*"]) if "." not in pkg]
+
+    # if len(pkg) != 1:
+    #     pass
+    # pkg = pkg[0]
+
+    # click.echo(f"Updating VERSION file to '{version}'...")
+
+    # with open(os.path.join(pkg, "VERSION"), "w") as fs:
+    #     fs.write(str(version))
+
+@cli.command()
+def version():
+    here = os.path.abspath(os.path.dirname(__file__))
+    with open(os.path.join(here, 'VERSION')) as version_file:
+        version = version_file.read().strip()
+    click.echo(version)
 
 
 def cli_main():
