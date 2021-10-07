@@ -13,10 +13,22 @@ class GithubProvider:
         self.repo = repo
         self.access_token = access_token
 
+    @property
+    def _authorization_header(self):
+        return {'Authorization': 'Bearer {}'.format(self.access_token)}
+
+    def _http_get(self, url):
+        return requests.get(url, headers=self._authorization_header)
+
+    def _http_post(self, url, body):
+        return requests.post(
+            url, json=body,
+            headers=self._authorization_header)
+
     def get_latest_version_tag_name(self):
-        url = "https://api.github.com/repos/{}/{}/releases/latest{}"\
-                  .format(self.owner, self.repo, self.access_token_postfix())
-        response = requests.get(url)
+        url = "https://api.github.com/repos/{}/{}/releases/latest"\
+                  .format(self.owner, self.repo)
+        response = self._http_get(url)
         if response.status_code == 200:
             json = response.json()
             return json["tag_name"]
@@ -24,9 +36,9 @@ class GithubProvider:
             raise GithubException(response.text)
 
     def get_refs_heads(self):
-        url = "https://api.github.com/repos/{}/{}/git/refs/heads?access_token={}"\
-                  .format(self.owner, self.repo, self.access_token)
-        response = requests.get(url)
+        url = "https://api.github.com/repos/{}/{}/git/refs/heads"\
+                  .format(self.owner, self.repo)
+        response = self._http_get(url)
         return response.json()
 
     def get_refs_head(self, ref):
@@ -44,9 +56,9 @@ class GithubProvider:
         sha = self.get_refs_head("refs/heads/master")
 
         body = {"ref": "refs/heads/{}".format(new_branch), "sha": sha}
-        url = "https://api.github.com/repos/{}/{}/git/refs{}" \
-                  .format(self.owner, self.repo, self.access_token_postfix())
-        response = requests.post(url, json=body)
+        url = "https://api.github.com/repos/{}/{}/git/refs" \
+                  .format(self.owner, self.repo)
+        response = self._http_post(url, body)
 
         if response.status_code == 201:
             print("Branch successfully created")
@@ -54,10 +66,10 @@ class GithubProvider:
             print("Branch already exists")  # TODO: Check error code def in docs
 
     def merge(self, base, head, commit_message):
-        url = "https://api.github.com/repos/{}/{}/merges{}"\
-                  .format(self.owner, self.repo, self.access_token_postfix())
-        json = {"base": base, "head": head, "commit_message": commit_message}
-        response = requests.post(url, json=json)
+        url = "https://api.github.com/repos/{}/{}/merges"\
+                  .format(self.owner, self.repo)
+        body = {"base": base, "head": head, "commit_message": commit_message}
+        response = self._http_post(url, body)
         if response.status_code == 201:
             print("Successfully merged '{}' into '{}'".format(head, base))
         elif response.status_code == 204:
@@ -69,10 +81,10 @@ class GithubProvider:
             raise GithubException(msg)
 
     def create_pull_request(self, base, head, title, body):
-        url = "https://api.github.com/repos/{}/{}/pulls{}"\
-                  .format(self.owner, self.repo, self.access_token_postfix())
-        json = {"head": head, "base": base, "title": title, "body": body}
-        resp = requests.post(url, json=json)
+        url = "https://api.github.com/repos/{}/{}/pulls"\
+                  .format(self.owner, self.repo)
+        body = {"head": head, "base": base, "title": title, "body": body}
+        resp = self._http_post(url, body)
         if resp.status_code == 201:
             print("A pull request has been created from '{}' to '{}'".format(head, base))
         else:
@@ -81,9 +93,9 @@ class GithubProvider:
     def download_archive(self, branch, save_to_path, ball="zipball"):
         """Ball can be either zipball or tarball"""
         # TODO: Test on Windows
-        url = "https://api.github.com/repos/{owner}/{repo}/{archive_format}/{ref}{token}"\
-              .format(owner=self.owner, repo=self.repo, archive_format=ball, ref=branch, token=self.access_token_postfix())
-        response = requests.get(url)
+        url = "https://api.github.com/repos/{owner}/{repo}/{archive_format}/{ref}"\
+              .format(owner=self.owner, repo=self.repo, archive_format=ball, ref=branch)
+        response = self._http_get(url)
         if response.status_code == 200:
             print("Downloaded the archive. Extracting...")
             archive = zipfile.ZipFile(StringIO.StringIO(response.content))
@@ -91,9 +103,9 @@ class GithubProvider:
             print("Extracted")
 
     def download_release_history(self, path):
-        url = "https://api.github.com/repos/{owner}/{repo}/releases{token}"\
-              .format(owner=self.owner, repo=self.repo, token=self.access_token_postfix())
-        response = requests.get(url)
+        url = "https://api.github.com/repos/{owner}/{repo}/releases"\
+              .format(owner=self.owner, repo=self.repo)
+        response = self._http_get(url)
         if response.status_code == 200:
             print("Writing to file...")
             with open(path, 'w') as f:
@@ -113,9 +125,9 @@ class GithubProvider:
         return str.join('\n\n\n', c)
 
     def get_branches(self):
-        url = "https://api.github.com/repos/{}/{}/branches{}"\
-                  .format(self.owner, self.repo, self.access_token_postfix())
-        response = requests.get(url)
+        url = "https://api.github.com/repos/{}/{}/branches"\
+                  .format(self.owner, self.repo)
+        response = self._http_get(url)
         if response.status_code == 200:
             return response.json()
         else:
@@ -123,12 +135,12 @@ class GithubProvider:
 
     def tag_release(self, tag_name, branch):
         # Tags a commit as a release on Github
-        url = "https://api.github.com/repos/{}/{}/releases{}"\
-                  .format(self.owner, self.repo, self.access_token_postfix())
+        url = "https://api.github.com/repos/{}/{}/releases"\
+                  .format(self.owner, self.repo)
         # TODO: Release description
-        json = {"tag_name": tag_name, "target_commitish": branch,
+        body = {"tag_name": tag_name, "target_commitish": branch,
                 "name": tag_name, "body": "", "draft": False, "prerelease": False}
-        response = requests.post(url, json=json)
+        response = self._http_post(url, body)
         if response.status_code == 201:
             print("HEAD of master marked as release {}".format(tag_name))
         else:
@@ -143,8 +155,7 @@ class GithubProvider:
 
     def _get(self, resource, params={}):
         url = self._url(resource)
-        params.update({'access_token': self.access_token})
-        resp = requests.get(url, params=params)
+        resp = self._http_get(url)
         if resp.status_code == 200:
             return resp.json()
         else:
@@ -161,13 +172,10 @@ class GithubProvider:
             base="https://api.github.com",
             req=req)
 
-    def access_token_postfix(self):
-        return "?access_token={}".format(self.access_token)
-
     def compare(self, base, head):
-        url = "https://api.github.com/repos/{}/{}/compare/{}...{}{}"\
-              .format(self.owner, self.repo, base, head, self.access_token_postfix())
-        response = requests.get(url)
+        url = "https://api.github.com/repos/{}/{}/compare/{}...{}"\
+              .format(self.owner, self.repo, base, head)
+        response = self._http_get(url)
         print(response.status_code, response.json())
 
 
