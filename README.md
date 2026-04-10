@@ -1,4 +1,4 @@
-** ARCHIVED - These scripts are outdated and not used anymore. A manual instruction for releases will be replacing this. **
+ARCHIVED - These scripts are outdated and not used anymore. A manual instruction for releases will be replacing this.
 -------------
 
 release-tools
